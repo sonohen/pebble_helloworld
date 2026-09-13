@@ -41,6 +41,20 @@ Based on this source code, you can proceed the tutorial "[Your First Watchface](
 
 ![size_calc](./images/size_calc.png)
 
+## Part 4 - Install Pebble Dependency
+
+```shell
+helloworld % pebble package install @moddable/pebbleproxy
+```
+
+## Part 4 - Order of HTTP Request via Pebble Companion App
+
+1. **Pebble**: Call `fetch()`. This request will be routing to Phone via Bluetooth.
+2. **Phone**: Fire `moddableProxy.appMessageReceived()`. Actuall request to HTTP server will be sent at this time.
+3. **HTTP Server**: Receive a request and response to origin.
+4. **Phone**: Send response to Pebble as AppMessage via Bluetooth.
+5. **Pebble**: Receive response from Phone.
+
 ## Question 1: `watchface` or `watchapp`
 
 In `package.json`, it is defined as follows:
