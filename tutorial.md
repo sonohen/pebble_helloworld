@@ -35,6 +35,8 @@ You can download a base source code from [coredevices/alloy-watchface-tutorial](
 
 Based on this source code, you can proceed the tutorial "[Your First Watchface](https://developer.repebble.com/tutorials/alloy-watchface-tutorial/part1/)."
 
+![Development Screen](./images/pebble_emulator.png)
+
 ## Question 1: `watchface` or `watchapp`
 
 In `package.json`, it is defined as follows:
@@ -48,6 +50,16 @@ In `package.json`, it is defined as follows:
 ```
 
 When you set `watchface` as `true`, the app is watch face. When `false`, it is watch app.
+
+## Question 2: Difference between monochromed or not
+
+`monochrome` is `true`:
+
+![monochrome](./images/monochrome_true.png)
+
+`monochrome` is `false`:
+
+![not monochrome](./images/monochrome_false.png)
 
 # Resources
 
