@@ -50,10 +50,31 @@ helloworld % pebble package install @moddable/pebbleproxy
 ## Part 4 - Order of HTTP Request via Pebble Companion App
 
 1. **Pebble**: Call `fetch()`. This request will be routing to Phone via Bluetooth.
-2. **Phone**: Fire `moddableProxy.appMessageReceived()`. Actuall request to HTTP server will be sent at this time.
+2. **Pebble Companion App(Phone)**: Fire `moddableProxy.appMessageReceived()`. Actuall request to HTTP server will be sent at this time.
 3. **HTTP Server**: Receive a request and response to origin.
-4. **Phone**: Send response to Pebble as AppMessage via Bluetooth.
+4. **Pebble Companion App(Phone)**: Send response to Pebble as AppMessage via Bluetooth.
 5. **Pebble**: Receive response from Phone.
+
+## Part 5 - Timeline Quick View on Emulator (Qemu)
+
+When you launch emulator in Visual Studio Code, you cannot use Timeline Quick View properly. If you do so, the emulation will be failed.
+
+![Fatal Error](./images/fatal_error_timeline_quick_view.png)
+
+> Alloy: Fatal Error
+>
+> Type Error: cannot coerce undefined to object (in Headers.prototype.set)
+
+````shell
+# Build & Install & Launch Emulator
+helloworld % pebble build && pebble install --emulator emery
+
+# Enable Timeline Quick View
+helloworld % pebble emu-set-timeline-quick-view on
+
+# (Optional) Disable Timeline Quick View
+helloworld % pebble emu-set-timeline-quick-view off
+```
 
 ## Question 1: `watchface` or `watchapp`
 
@@ -65,7 +86,7 @@ In `package.json`, it is defined as follows:
       "watchface": true
     },
     ...
-```
+````
 
 When you set `watchface` as `true`, the app is watch face. When `false`, it is watch app.
 

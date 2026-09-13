@@ -23,20 +23,6 @@ const green = render.makeColor(0, 170, 0);
 const yellow = render.makeColor(255, 170, 0);
 const red = render.makeColor(255, 0, 0);
 
-// Precompute layout positions
-/*
- * (0,0) ------------------------ x
- * |    (timeY)                 |
- * |     Time                   | block.height       | render.height
- * |    (dateY) Date            |                    |
- * |                                                 |
- * y
- *
- */
-const blockHeight = timeFont.height + dateFont.height;
-const timeY = (render.height - blockHeight) / 2;
-const dateY = timeY + timeFont.height;
-
 // Day and month names for date formatting
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = [
@@ -55,9 +41,14 @@ const MONTHS = [
 ];
 
 let lastDate = new Date();
+let batteryPercent = 100;
+
+// Monitoring connection state
+let isConnected = true;
+watch.addEventListener("connected", checkConnection);
+checkConnection();
 
 // Battery
-let batteryPercent = 100;
 const battery = new Battery({
   onSample() {
     batteryPercent = this.sample().percent;
@@ -66,17 +57,26 @@ const battery = new Battery({
 });
 batteryPercent = battery.sample().percent;
 
-// Monitoring connection state
-let isConnected = true;
-watch.addEventListener("connected", checkConnection);
-checkConnection();
-
 function drawScreen(event) {
   const now = event?.date ?? lastDate;
   if (event?.date) lastDate = event.date;
 
   render.begin();
   render.fillRectangle(black, 0, 0, render.width, render.height);
+
+  // Precompute layout positions
+  /*
+   * (0,0) ------------------------ x
+   * |    (timeY)                 |
+   * |     Time                   | block.height       | render.unobstructed.height
+   * |    (dateY) Date            |                    |
+   * |                                                 |
+   * y
+   *
+   */
+  const blockHeight = timeFont.height + dateFont.height;
+  const timeY = (render.unobstructed.height - blockHeight) / 2;
+  const dateY = timeY + timeFont.height;
 
   // Draw battery bar at the top
   drawBatteryBar();
@@ -85,8 +85,14 @@ function drawScreen(event) {
   if (!isConnected) {
     const btStr = "X";
     const btWidth = render.getTextWidth(btStr, smallFont);
-    const btY = render.height < 180 ? 16 : 30;
-    render.drawText(btStr, smallFont, red, (render.width - btWidth) / 2, btY);
+    const btY = render.unobstructed.height < 180 ? 16 : 30;
+    render.drawText(
+      btStr,
+      smallFont,
+      red,
+      (render.unobstructed.width - btWidth) / 2,
+      btY,
+    );
   }
 
   // Format time as HH:MM
@@ -96,7 +102,13 @@ function drawScreen(event) {
 
   // Center the time vertically (shifted up slightly to make room for date)
   let width = render.getTextWidth(timeStr, timeFont);
-  render.drawText(timeStr, timeFont, white, (render.width - width) / 2, timeY);
+  render.drawText(
+    timeStr,
+    timeFont,
+    white,
+    (render.unobstructed.width - width) / 2,
+    timeY,
+  );
 
   // Format date as "Mon Jan 01"
   const dayName = DAYS[now.getDay()];
@@ -105,7 +117,13 @@ function drawScreen(event) {
 
   // Draw date below the time
   width = render.getTextWidth(dateStr, dateFont);
-  render.drawText(dateStr, dateFont, white, (render.width - width) / 2, dateY);
+  render.drawText(
+    dateStr,
+    dateFont,
+    white,
+    (render.unobstructed.width - width) / 2,
+    dateY,
+  );
 
   // Draw weather at the bottom
   drawWeather();
@@ -122,9 +140,9 @@ function getFont(name, size) {
 }
 
 function drawBatteryBar() {
-  const barWidth = (render.width / 2) | 0;
-  const barX = ((render.width - barWidth) / 2) | 0;
-  const barY = render.height < 180 ? 6 : 20;
+  const barWidth = (render.unobstructed.width / 2) | 0;
+  const barX = ((render.unobstructed.width - barWidth) / 2) | 0;
+  const barY = render.unobstructed.height < 180 ? 6 : 20;
   const barHeight = 8;
 
   // Draw border
@@ -148,7 +166,9 @@ function drawBatteryBar() {
 
 function drawWeather() {
   const weatherY =
-    render.height - smallFont.height - (render.height < 180 ? 6 : 20);
+    render.unobstructed.height -
+    smallFont.height -
+    (render.unobstructed.height < 180 ? 6 : 20);
   if (weather) {
     const weatherStr = `${weather.temp}°C ${weather.conditions}`;
     const width = render.getTextWidth(weatherStr, smallFont);
@@ -156,7 +176,7 @@ function drawWeather() {
       weatherStr,
       smallFont,
       white,
-      (render.width - width) / 2,
+      (render.unobstructed.width - width) / 2,
       weatherY,
     );
   } else {
@@ -166,7 +186,7 @@ function drawWeather() {
       loadingStr,
       smallFont,
       white,
-      (render.width - width) / 2,
+      (render.unobstructed.width - width) / 2,
       weatherY,
     );
   }
@@ -234,5 +254,5 @@ function checkConnection() {
 
 // Update every minute (fires immediately when registered)
 watch.addEventListener("minutechange", drawScreen);
-
 watch.addEventListener("hourchange", requestLocation);
+watch.addEventListener("resize", drawScreen);
