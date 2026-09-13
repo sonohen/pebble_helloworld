@@ -31,7 +31,9 @@ You can download it at [Official Market Place](https://marketplace.visualstudio.
 
 ## Enjoy your tutorial
 
-You can download a base source code from [coredevices/alloy-watchface-tutorial](https://github.com/coredevices/alloy-watchface-tutorial/tree/main/part1). Based on this source code, you can proceed the tutorial "[Your First Watchface](https://developer.repebble.com/tutorials/alloy-watchface-tutorial/part1/)."
+You can download a base source code from [coredevices/alloy-watchface-tutorial](https://github.com/coredevices/alloy-watchface-tutorial/tree/main/part1).
+
+Based on this source code, you can proceed the tutorial "[Your First Watchface](https://developer.repebble.com/tutorials/alloy-watchface-tutorial/part1/)."
 
 ## Question 1: `watchface` or `watchapp`
 

@@ -1,9 +1,25 @@
 {
- 	"include":  [
-		"$(MODDABLE)/examples/manifest_mod.json",
-		"$(MODDABLE)/examples/manifest_typings.json"
-	],
-	"modules": {
-		"*": "./main"
-	}
+  "include": [
+    "$(MODDABLE)/examples/manifest_mod.json",
+    "$(MODDABLE)/examples/manifest_typings.json"
+  ],
+  "modules": {
+    "*": "./main"
+  },
+  "resources": {
+    "*-alpha": [
+      {
+        "source": "./assets/Jersey10-Regular",
+        "size": 56,
+        "monochrome": true,
+        "blocks": ["Basic Latin"]
+      },
+      {
+        "source": "./assets/Jersey10-Regular",
+        "size": 24,
+        "monochrome": true,
+        "blocks": ["Basic Latin"]
+      }
+    ]
+  }
 }
