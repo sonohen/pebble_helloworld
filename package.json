@@ -7,7 +7,8 @@
   ],
   "private": true,
   "dependencies": {
-    "@moddable/pebbleproxy": "^0.2.0"
+    "@moddable/pebbleproxy": "^0.2.0",
+    "@rebble/clay": "^1.1.0"
   },
   "pebble": {
     "displayName": "helloworld",

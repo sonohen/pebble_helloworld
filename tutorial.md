@@ -1,4 +1,4 @@
-# Tutorial
+# Note of Tutorial
 
 ## Environment
 
@@ -37,6 +37,10 @@ Based on this source code, you can proceed the tutorial "[Your First Watchface](
 
 ![Development Screen](./images/pebble_emulator.png)
 
+## Overview
+
+![Overview](./images/overview.png)
+
 ## Part 3 - Size Calculation
 
 ![size_calc](./images/size_calc.png)
@@ -50,7 +54,7 @@ helloworld % pebble package install @moddable/pebbleproxy
 ## Part 4 - Order of HTTP Request via Pebble Companion App
 
 1. **Pebble**: Call `fetch()`. This request will be routing to Phone via Bluetooth.
-2. **Pebble Companion App(Phone)**: Fire `moddableProxy.appMessageReceived()`. Actuall request to HTTP server will be sent at this time.
+2. **Pebble Companion App(Phone)**: Fire `moddableProxy.appMessageReceived()`. Actual request to HTTP server will be sent at this time.
 3. **HTTP Server**: Receive a request and response to origin.
 4. **Pebble Companion App(Phone)**: Send response to Pebble as AppMessage via Bluetooth.
 5. **Pebble**: Receive response from Phone.
@@ -65,7 +69,7 @@ When you launch emulator in Visual Studio Code, you cannot use Timeline Quick Vi
 >
 > Type Error: cannot coerce undefined to object (in Headers.prototype.set)
 
-````shell
+```shell
 # Build & Install & Launch Emulator
 helloworld % pebble build && pebble install --emulator emery
 
@@ -86,7 +90,7 @@ In `package.json`, it is defined as follows:
       "watchface": true
     },
     ...
-````
+```
 
 When you set `watchface` as `true`, the app is watch face. When `false`, it is watch app.
 
@@ -99,6 +103,18 @@ When you set `watchface` as `true`, the app is watch face. When `false`, it is w
 `monochrome` is `false`:
 
 ![not monochrome](./images/monochrome_false.png)
+
+## Question 3: How to debug the application?
+
+```shell
+# Create debug build
+helloworld % pebble build --debug
+
+# Install debug build
+helloworld % pebble install --emulator emery
+
+# xsbug will be launched automatically.
+```
 
 # Resources
 

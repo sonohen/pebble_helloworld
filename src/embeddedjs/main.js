@@ -3,11 +3,35 @@ import parseBMF from "commodetto/parseBMF";
 import parseRLE from "commodetto/parseRLE";
 import Battery from "embedded:sensor/Battery";
 import Location from "embedded:sensor/Location";
+import Message from "pebble/message";
 
 const render = new Poco(screen);
 
 let weather = null;
 let location = null;
+
+// Default Configuration
+const DEFAULT_SETTINGS = {
+  backgroundColor: { r: 0, g: 0, b: 0 },
+  textColor: { r: 255, g: 255, b: 255 },
+  useFahrenheit: true,
+  showDate: true,
+  use24Hour: false,
+};
+
+let settings = loadSettings();
+
+let bgColor = render.makeColor(
+  settings.backgroundColor.r,
+  settings.backgroundColor.g,
+  settings.backgroundColor.b,
+);
+
+let textColor = render.makeColor(
+  settings.textColor.r,
+  settings.textColor.g,
+  settings.textColor.b,
+);
 
 // Fonts
 // const timeFont = new render.Font("Bitham-Bold", 42);
@@ -17,8 +41,6 @@ const dateFont = getFont("Jersey10-Regular", 24);
 const smallFont = new render.Font("Gothic-Regular", 18);
 
 // Colors
-const black = render.makeColor(0, 0, 0);
-const white = render.makeColor(255, 255, 255);
 const green = render.makeColor(0, 170, 0);
 const yellow = render.makeColor(255, 170, 0);
 const red = render.makeColor(255, 0, 0);
@@ -62,7 +84,9 @@ function drawScreen(event) {
   if (event?.date) lastDate = event.date;
 
   render.begin();
-  render.fillRectangle(black, 0, 0, render.width, render.height);
+  render.fillRectangle(bgColor, 0, 0, render.width, render.height);
+
+  loadCachedWeather();
 
   // Precompute layout positions
   /*
@@ -96,34 +120,44 @@ function drawScreen(event) {
   }
 
   // Format time as HH:MM
-  const hours = String(now.getHours()).padStart(2, "0");
+  let hours = now.getHours();
+  if (!settings.use24Hour) {
+    hours = hours % 12 || 12; // Convert to 12-hour format
+  }
+  const hoursStr = String(hours).padStart(2, "0");
   const minutes = String(now.getMinutes()).padStart(2, "0");
-  const timeStr = `${hours}:${minutes}`;
+  let ampm = "AM";
+  if (!settings.use24Hour) {
+    ampm = now.getHours() < 12 ? "AM" : "PM";
+  }
+  const timeStr = `${ampm} ${hoursStr}:${minutes}`;
 
   // Center the time vertically (shifted up slightly to make room for date)
   let width = render.getTextWidth(timeStr, timeFont);
   render.drawText(
     timeStr,
     timeFont,
-    white,
+    textColor,
     (render.unobstructed.width - width) / 2,
     timeY,
   );
 
-  // Format date as "Mon Jan 01"
-  const dayName = DAYS[now.getDay()];
-  const monthName = MONTHS[now.getMonth()];
-  const dateStr = `${dayName} ${monthName} ${String(now.getDate()).padStart(2, "0")}`;
+  if (settings.showDate) {
+    // Format date as "Mon Jan 01"
+    const dayName = DAYS[now.getDay()];
+    const monthName = MONTHS[now.getMonth()];
+    const dateStr = `${dayName} ${monthName} ${String(now.getDate()).padStart(2, "0")}`;
 
-  // Draw date below the time
-  width = render.getTextWidth(dateStr, dateFont);
-  render.drawText(
-    dateStr,
-    dateFont,
-    white,
-    (render.unobstructed.width - width) / 2,
-    dateY,
-  );
+    // Draw date below the time
+    width = render.getTextWidth(dateStr, dateFont);
+    render.drawText(
+      dateStr,
+      dateFont,
+      textColor,
+      (render.unobstructed.width - width) / 2,
+      dateY,
+    );
+  }
 
   // Draw weather at the bottom
   drawWeather();
@@ -146,8 +180,14 @@ function drawBatteryBar() {
   const barHeight = 8;
 
   // Draw border
-  render.fillRectangle(white, barX, barY, barWidth, barHeight);
-  render.fillRectangle(black, barX + 1, barY + 1, barWidth - 2, barHeight - 2);
+  render.fillRectangle(textColor, barX, barY, barWidth, barHeight);
+  render.fillRectangle(
+    bgColor,
+    barX + 1,
+    barY + 1,
+    barWidth - 2,
+    barHeight - 2,
+  );
 
   // Choose color based on battery level
   let barColor;
@@ -169,13 +209,15 @@ function drawWeather() {
     render.unobstructed.height -
     smallFont.height -
     (render.unobstructed.height < 180 ? 6 : 20);
+
   if (weather) {
-    const weatherStr = `${weather.temp}°C ${weather.conditions}`;
+    const unit = settings.useFahrenheit ? "°F" : "°C";
+    const weatherStr = `${weather.temp}${unit} ${weather.conditions}`;
     const width = render.getTextWidth(weatherStr, smallFont);
     render.drawText(
       weatherStr,
       smallFont,
-      white,
+      textColor,
       (render.unobstructed.width - width) / 2,
       weatherY,
     );
@@ -185,7 +227,7 @@ function drawWeather() {
     render.drawText(
       loadingStr,
       smallFont,
-      white,
+      textColor,
       (render.unobstructed.width - width) / 2,
       weatherY,
     );
@@ -223,11 +265,18 @@ function getWeatherDescription(code) {
 async function fetchWeather(latitude, longitude) {
   try {
     const url = new URL("https://api.open-meteo.com/v1/forecast");
-    url.search = new URLSearchParams({
+    const params = {
       latitude,
       longitude,
       current: "temperature_2m,weather_code",
-    });
+    };
+    const unit = settings.useFahrenheit ? "F" : "C";
+
+    if (settings.useFahrenheit) {
+      params.temperature_unit = "fahrenheit";
+    }
+
+    url.search = new URLSearchParams(params);
 
     console.log(url);
 
@@ -240,7 +289,9 @@ async function fetchWeather(latitude, longitude) {
       conditions: getWeatherDescription(data.current.weather_code),
     };
 
-    console.log("Weather: " + weather.temp + "°C, " + weather.conditions);
+    saveWeather();
+
+    console.log("Weather: " + weather.temp + `${unit}, ` + weather.conditions);
     drawScreen();
   } catch (e) {
     console.log("Weather fetch error: " + e);
@@ -251,6 +302,118 @@ function checkConnection() {
   isConnected = watch.connected.app;
   drawScreen();
 }
+
+function loadSettings() {
+  const stored = localStorage.getItem("settings");
+
+  if (stored) {
+    try {
+      return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
+    } catch (e) {
+      console.log("Failed to parse settings");
+    }
+  }
+
+  return { ...DEFAULT_SETTINGS };
+}
+
+function saveSettings(settings) {
+  localStorage.setItem("settings", JSON.stringify(settings));
+}
+
+function updateColors() {
+  bgColor = render.makeColor(
+    settings.backgroundColor.r,
+    settings.backgroundColor.g,
+    settings.backgroundColor.b,
+  );
+
+  textColor = render.makeColor(
+    settings.textColor.r,
+    settings.textColor.g,
+    settings.textColor.b,
+  );
+}
+
+function loadCachedWeather() {
+  const cached = localStorage.getItem("weather");
+  const cachedTime = localStorage.getItem("weatherTime");
+  if (cached && cachedTime) {
+    const now = Date.now();
+    const age = now - parseInt(cachedTime, 10);
+    if (age < 60 * 60 * 1000) {
+      try {
+        weather = JSON.parse(cached);
+        console.log("Using cached weather");
+      } catch (e) {
+        console.log("Failed to parse cached weather");
+      }
+    }
+  }
+  return false;
+}
+
+function saveWeather() {
+  if (weather) {
+    localStorage.setItem("weather", JSON.stringify(weather));
+    localStorage.setItem("weatherTime", Date.now().toString());
+  }
+}
+
+const message = new Message({
+  keys: [
+    "BackgroundColor",
+    "TextColor",
+    "TemperatureUnit",
+    "ShowDate",
+    "HourFormat",
+  ],
+
+  onReadable() {
+    const msg = this.read();
+
+    const bg = msg.get("BackgroundColor");
+    if (bg !== undefined) {
+      settings.backgroundColor = {
+        r: (bg >> 16) & 0xff,
+        g: (bg >> 8) & 0xff,
+        b: bg & 0xff,
+      };
+    }
+
+    const tc = msg.get("TextColor");
+    if (tc !== undefined) {
+      settings.textColor = {
+        r: (tc >> 16) & 0xff,
+        g: (tc >> 8) & 0xff,
+        b: tc & 0xff,
+      };
+    }
+
+    const tu = msg.get("TemperatureUnit");
+    if (tu !== undefined) {
+      settings.useFahrenheit = tu === 1;
+    }
+
+    const sd = msg.get("ShowDate");
+    if (sd !== undefined) {
+      settings.showDate = sd === 1;
+    }
+
+    const hf = msg.get("HourFormat");
+    if (hf !== undefined) {
+      settings.use24Hour = hf === 1;
+    }
+
+    saveSettings();
+    updateColors();
+    drawScreen();
+
+    if (tu !== undefined) {
+      requestLocation();
+    }
+  },
+});
 
 // Update every minute (fires immediately when registered)
 watch.addEventListener("minutechange", drawScreen);
