@@ -37,6 +37,10 @@ Based on this source code, you can proceed the tutorial "[Your First Watchface](
 
 ![Development Screen](./images/pebble_emulator.png)
 
+## Part 3 - Size Calculation
+
+![size_calc](./images/size_calc.png)
+
 ## Question 1: `watchface` or `watchapp`
 
 In `package.json`, it is defined as follows:

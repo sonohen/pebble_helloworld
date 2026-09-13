@@ -1,6 +1,7 @@
 import Poco from "commodetto/Poco";
 import parseBMF from "commodetto/parseBMF";
 import parseRLE from "commodetto/parseRLE";
+import Battery from "embedded:sensor/Battery";
 
 const render = new Poco(screen);
 
@@ -9,10 +10,14 @@ const render = new Poco(screen);
 // const dateFont = new render.Font("Gothic-Bold", 24);
 const timeFont = getFont("Jersey10-Regular", 56);
 const dateFont = getFont("Jersey10-Regular", 24);
+const smallFont = new render.Font("Gothic-Regular", 18);
 
 // Colors
 const black = render.makeColor(0, 0, 0);
 const white = render.makeColor(255, 255, 255);
+const green = render.makeColor(0, 170, 0);
+const yellow = render.makeColor(255, 170, 0);
+const red = render.makeColor(255, 0, 0);
 
 // Precompute layout positions
 /*
@@ -45,11 +50,40 @@ const MONTHS = [
   "Dec",
 ];
 
-function draw(event) {
-  const now = event.date;
+let lastDate = new Date();
+
+// Battery
+let batteryPercent = 100;
+const battery = new Battery({
+  onSample() {
+    batteryPercent = this.sample().percent;
+    drawScreen();
+  },
+});
+batteryPercent = battery.sample().percent;
+
+// Monitoring connection state
+let isConnected = true;
+watch.addEventListener("connected", checkConnection);
+checkConnection();
+
+function drawScreen(event) {
+  const now = event?.date ?? lastDate;
+  if (event?.date) lastDate = event.date;
 
   render.begin();
   render.fillRectangle(black, 0, 0, render.width, render.height);
+
+  // Draw battery bar at the top
+  drawBatteryBar();
+
+  // Draw disconnect indicator below battery bar
+  if (!isConnected) {
+    const btStr = "X";
+    const btWidth = render.getTextWidth(btStr, smallFont);
+    const btY = render.height < 180 ? 16 : 30;
+    render.drawText(btStr, smallFont, red, (render.width - btWidth) / 2, btY);
+  }
 
   // Format time as HH:MM
   const hours = String(now.getHours()).padStart(2, "0");
@@ -80,5 +114,35 @@ function getFont(name, size) {
   return font;
 }
 
+function drawBatteryBar() {
+  const barWidth = (render.width / 2) | 0;
+  const barX = ((render.width - barWidth) / 2) | 0;
+  const barY = render.height < 180 ? 6 : 20;
+  const barHeight = 8;
+
+  // Draw border
+  render.fillRectangle(white, barX, barY, barWidth, barHeight);
+  render.fillRectangle(black, barX + 1, barY + 1, barWidth - 2, barHeight - 2);
+
+  // Choose color based on battery level
+  let barColor;
+  if (batteryPercent <= 20) {
+    barColor = red;
+  } else if (batteryPercent <= 50) {
+    barColor = yellow;
+  } else {
+    barColor = green;
+  }
+
+  // Draw filled portion
+  const fillWidth = ((batteryPercent * (barWidth - 4)) / 100) | 0;
+  render.fillRectangle(barColor, barX + 2, barY + 2, fillWidth, barHeight - 4);
+}
+
+function checkConnection() {
+  isConnected = watch.connected.app;
+  drawScreen();
+}
+
 // Update every minute (fires immediately when registered)
-watch.addEventListener("minutechange", draw);
+watch.addEventListener("minutechange", drawScreen);
