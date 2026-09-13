@@ -17,9 +17,9 @@ const white = render.makeColor(255, 255, 255);
 // Precompute layout positions
 /*
  * (0,0) ------------------------ x
- * |                                                 |
+ * |    (timeY)                 |
  * |     Time                   | block.height       | render.height
- * |     Date                   |                    |
+ * |    (dateY) Date            |                    |
  * |                                                 |
  * y
  *
